@@ -4,164 +4,215 @@ from typing import List
 from datetime import datetime
 import uuid
 
-app = FastAPI(title="Sistema de Gerenciamento do Espetinho da Esquina", version="1.3")
+app = FastAPI(title="API Escolar", version="1.0.0")
 
-#Modelos-----------------------------------------------------------------------------------------------------------
-#Cadastro de Funcionário
-class FuncionarioEntrada(BaseModel):
+# ═══════════════════ MODELOS ═══════════════════
+
+class AlunoEntrada(BaseModel):
     nome: str
-    CPF: str
-    data_de_nascimento: str
-    cargo: str
-    senha: str
+    matricula: str
+    email: str
 
-class Funcionario(FuncionarioEntrada):
+class Aluno(AlunoEntrada):
     id: str
 
-#Cadastro de Gerente
-class GerenteEntrada (BaseModel):
+class DisciplinaEntrada(BaseModel):
     nome: str
-    CPF: str
-    data_de_nascimento: str
-    cargo: str
-    senha: str
-
-class Gerente(GerenteEntrada):
-    id: str
-
-#Cadastro dos produtos
-class produtoEntrada(BaseModel):
-    nome: str
-    categoria: str
+    codigo: str
     descricao: str
 
-class produto(produtoEntrada):
+class Disciplina(DisciplinaEntrada):
     id: str
 
-#Cadastro dos pedidos
-class pedidoEntrada(BaseModel):
-    itens: str
-    numero_da_mesa: str
-    atendente_id: str
-    status_pedido: str
+class MatriculaEntrada(BaseModel):
+    aluno_id: str
+    disciplina_id: str
 
-class pedido(pedidoEntrada):
+class Matricula(MatriculaEntrada):
     id: str
 
+class InfracaoEntrada(BaseModel):
+    aluno_id: str
+    disciplina_id: str
+    descricao: str
+    gravidade: str
 
-#Dados em Lista-------------------------------------------------------------------------------------------------------
-funcionario_db: List[Funcionario] = []
-gerente_db: List[Gerente] = []
-produto_db: List[produto] = []
-pedido_db: List[pedido] = []
+class Infracao(InfracaoEntrada):
+    id: str
+    data: str
 
+# ═══════════════════ DADOS EM MEMÓRIA ═══════════════════
 
-#Helpers (def)--------------------------------------------------------------------------------------------------------
-def encontrar_funcionario(id: str) -> Funcionario:
-    for a in funcionario_db:
+alunos_db:      List[Aluno]      = []
+disciplinas_db: List[Disciplina] = []
+matriculas_db:  List[Matricula]  = []
+infracoes_db:   List[Infracao]   = []
+
+# ═══════════════════ HELPERS ═══════════════════
+
+def encontrar_aluno(id: str) -> Aluno:
+    for a in alunos_db:
         if a.id == id:
             return a
-    raise HTTPException(status_code=404, detail="Funcionário não cadastrado")
+    raise HTTPException(status_code=404, detail="Aluno não encontrado")
 
-def encontrar_gerente(id: str) -> Gerente:
-    for b in gerente_db:
-        if b.id == id:
-            return b
-    raise HTTPException(status_code=404, detail="Gerente não cadastrado")
-
-def encontrar_produto(id: str) -> produto:
-    for c in produto_db:
-        if c.id == id:
-            return c
-    raise HTTPException(status_code=404, detail="Produto não cadastrado")
-
-def encontrar_pedido(id: str) -> pedido:
-    for d in pedido_db:
+def encontrar_disciplina(id: str) -> Disciplina:
+    for d in disciplinas_db:
         if d.id == id:
             return d
-    raise HTTPException(status_code=404, detail="Pedido não cadastrado")
+    raise HTTPException(status_code=404, detail="Disciplina não encontrada")
 
+# ═══════════════════ ALUNOS ═══════════════════
 
-#Métodos com Funcionário---------------------------------------------------------------------------------------------------
 @app.get("/")
 def raiz():
-     return {"A API está funcionando!"}
+    return {"mensagem": "API Escolar funcionando! 🏫"}
 
-@app.post("/Funcionário", response_model=Funcionario, status_code=201)
-def criar_funcionario(dados: FuncionarioEntrada):
-    novo = Funcionario(id=str(uuid.uuid4()), **dados.model_dump())
-    funcionario_db.append(novo)
+@app.post("/alunos", response_model=Aluno, status_code=201)
+def criar_aluno(dados: AlunoEntrada):
+    novo = Aluno(id=str(uuid.uuid4()), **dados.model_dump())
+    alunos_db.append(novo)
     return novo
 
-@app.get("/Funcionário", response_model=List[Funcionario])
-def listar_funcionarios():
-    return funcionario_db
+@app.get("/alunos", response_model=List[Aluno])
+def listar_alunos():
+    return alunos_db
 
-@app.get("/Funcionário/{id}", response_model=Funcionario)
-def buscar_funcionario(id: str):
-    return encontrar_funcionario(id)
+@app.get("/alunos/{id}", response_model=Aluno)
+def buscar_aluno(id: str):
+    return encontrar_aluno(id)
 
-@app.delete("/Funcionário/{id}", status_code=204)
-def remover_funcionario(id: str):
-    for i, a in enumerate(funcionario_db):
+@app.put("/alunos/{id}", response_model=Aluno)
+def editar_aluno(id: str, dados: AlunoEntrada):
+    for i, a in enumerate(alunos_db):
         if a.id == id:
-            funcionario_db.pop(i)
-            return
-    raise HTTPException(status_code=404, detail="Funcionário não encontrado")
+            atualizado = Aluno(id=id, **dados.model_dump())
+            alunos_db[i] = atualizado
+            return atualizado
+    raise HTTPException(status_code=404, detail="Aluno não encontrado")
 
-#Métodos com Gerente------------------------------------------------------------------------------------------------------
-@app.post("/Gerente", response_model=Gerente, status_code=201)
-def criar_gerente(dados: GerenteEntrada):
-    nova = Gerente(id=str(uuid.uuid4()), **dados.model_dump())
-    gerente_db.append(nova)
+@app.delete("/alunos/{id}", status_code=204)
+def remover_aluno(id: str):
+    for i, a in enumerate(alunos_db):
+        if a.id == id:
+            alunos_db.pop(i)
+            return
+    raise HTTPException(status_code=404, detail="Aluno não encontrado")
+
+# ═══════════════════ DISCIPLINAS ═══════════════════
+
+@app.post("/disciplinas", response_model=Disciplina, status_code=201)
+def criar_disciplina(dados: DisciplinaEntrada):
+    nova = Disciplina(id=str(uuid.uuid4()), **dados.model_dump())
+    disciplinas_db.append(nova)
     return nova
 
-@app.get("/Gerente/{id}", response_model=Gerente)
-def buscar_gerente(id: str):
-    return encontrar_gerente(id)
+@app.get("/disciplinas", response_model=List[Disciplina])
+def listar_disciplinas():
+    return disciplinas_db
 
-@app.delete("/Gerente/{id}", status_code=204)
-def remover_gerente(id: str):
-    for i, d in enumerate(gerente_db):
+@app.get("/disciplinas/{id}", response_model=Disciplina)
+def buscar_disciplina(id: str):
+    return encontrar_disciplina(id)
+
+@app.put("/disciplinas/{id}", response_model=Disciplina)
+def editar_disciplina(id: str, dados: DisciplinaEntrada):
+    for i, d in enumerate(disciplinas_db):
         if d.id == id:
-            gerente_db.pop(i)
-            return
-    raise HTTPException(status_code=404, detail="Gerente não encontrado")
+            atualizada = Disciplina(id=id, **dados.model_dump())
+            disciplinas_db[i] = atualizada
+            return atualizada
+    raise HTTPException(status_code=404, detail="Disciplina não encontrada")
 
-#Métodos com produtos------------------------------------------------------------------------------------------------------
-@app.post("/Produto", response_model=produto, status_code=201)
-def criar_produto(dados: produtoEntrada):
-    nova = produto(id=str(uuid.uuid4()), **dados.model_dump())
-    produto_db.append(nova)
-    return nova
-
-@app.get("/Produto", response_model=List[produto])
-def listar_produtos():
-    return produto_db
-
-@app.get("/Produto/{id}", response_model=produto)
-def buscar_produto(id: str):
-    return encontrar_produto(id)
-
-@app.delete("/Produto/{id}", status_code=204)
-def remover_produto(id: str):
-    for i, d in enumerate(produto_db):
+@app.delete("/disciplinas/{id}", status_code=204)
+def remover_disciplina(id: str):
+    for i, d in enumerate(disciplinas_db):
         if d.id == id:
-            produto_db.pop(i)
+            disciplinas_db.pop(i)
             return
-    raise HTTPException(status_code=404, detail="Produto não encontrado")
+    raise HTTPException(status_code=404, detail="Disciplina não encontrada")
 
-#Métodos com pedidos------------------------------------------------------------------------------------------------------
-@app.post("/Pedido", response_model=pedido, status_code=201)
-def criar_pedido(dados: pedidoEntrada):
-    nova = pedido(id=str(uuid.uuid4()), **dados.model_dump())
-    pedido_db.append(nova)
+# ═══════════════════ MATRÍCULAS ═══════════════════
+
+@app.post("/matriculas", response_model=Matricula, status_code=201)
+def matricular_aluno(dados: MatriculaEntrada):
+    encontrar_aluno(dados.aluno_id)
+    encontrar_disciplina(dados.disciplina_id)
+    for m in matriculas_db:
+        if m.aluno_id == dados.aluno_id and m.disciplina_id == dados.disciplina_id:
+            raise HTTPException(status_code=409, detail="Aluno já matriculado nesta disciplina")
+    nova = Matricula(id=str(uuid.uuid4()), **dados.model_dump())
+    matriculas_db.append(nova)
     return nova
 
-@app.get("/Pedido", response_model=List[pedido])
-def listar_pedidos():
-    return pedido_db
+@app.get("/alunos/{id}/disciplinas", response_model=List[Disciplina])
+def disciplinas_do_aluno(id: str):
+    encontrar_aluno(id)
+    ids_disc = {m.disciplina_id for m in matriculas_db if m.aluno_id == id}
+    return [d for d in disciplinas_db if d.id in ids_disc]
 
-@app.get("/Pedido/{id}", response_model=pedido)
-def buscar_pedido(id: str):
-    return encontrar_pedido(id)
+@app.get("/disciplinas/{id}/alunos", response_model=List[Aluno])
+def alunos_da_disciplina(id: str):
+    encontrar_disciplina(id)
+    ids_alunos = {m.aluno_id for m in matriculas_db if m.disciplina_id == id}
+    return [a for a in alunos_db if a.id in ids_alunos]
+
+@app.delete("/matriculas/{id}", status_code=204)
+def cancelar_matricula(id: str):
+    for i, m in enumerate(matriculas_db):
+        if m.id == id:
+            matriculas_db.pop(i)
+            return
+    raise HTTPException(status_code=404, detail="Matrícula não encontrada")
+
+# ═══════════════════ INFRAÇÕES ═══════════════════
+
+@app.post("/infracoes", response_model=Infracao, status_code=201)
+def registrar_infracao(dados: InfracaoEntrada):
+    encontrar_aluno(dados.aluno_id)
+    encontrar_disciplina(dados.disciplina_id)
+    nova = Infracao(
+        id=str(uuid.uuid4()),
+        data=datetime.now().isoformat(),
+        **dados.model_dump()
+    )
+    infracoes_db.append(nova)
+    return nova
+
+@app.get("/infracoes", response_model=List[Infracao])
+def listar_infracoes():
+    return infracoes_db
+
+@app.get("/infracoes/{id}", response_model=Infracao)
+def buscar_infracao(id: str):
+    for inf in infracoes_db:
+        if inf.id == id:
+            return inf
+    raise HTTPException(status_code=404, detail="Infração não encontrada")
+
+@app.get("/alunos/{id}/infracoes", response_model=List[Infracao])
+def infracoes_do_aluno(id: str):
+    encontrar_aluno(id)
+    return [inf for inf in infracoes_db if inf.aluno_id == id]
+
+@app.get("/disciplinas/{id}/infracoes", response_model=List[Infracao])
+def infracoes_da_disciplina(id: str):
+    encontrar_disciplina(id)
+    return [inf for inf in infracoes_db if inf.disciplina_id == id]
+
+@app.put("/infracoes/{id}", response_model=Infracao)
+def editar_infracao(id: str, dados: InfracaoEntrada):
+    for i, inf in enumerate(infracoes_db):
+        if inf.id == id:
+            atualizada = Infracao(id=id, data=inf.data, **dados.model_dump())
+            infracoes_db[i] = atualizada
+            return atualizada
+    raise HTTPException(status_code=404, detail="Infração não encontrada")
+
+@app.delete("/infracoes/{id}", status_code=204)
+def remover_infracao(id: str):
+    for i, inf in enumerate(infracoes_db):
+        if inf.id == id:
+            infracoes_db.pop(i)
+            return
+    raise HTTPException(status_code=404, detail="Infração não encontrada")
